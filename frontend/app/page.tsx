@@ -1,526 +1,504 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-} from "recharts";
-
-import {
+  Search,
+  Bell,
+  Moon,
+  Cpu,
   TrendingUp,
-  Globe,
   Newspaper,
   MessageCircle,
   Brain,
-  Zap,
-  Sparkles,
-  X,
   ExternalLink,
   Info,
+  Atom,
 } from "lucide-react";
 
-const stagePositions: Record<string, number> = {
-  "Innovation Trigger": 10,
-  "Peak of Inflated Expectations": 30,
-  "Trough of Disillusionment": 52,
-  "Slope of Enlightenment": 75,
-  "Plateau of Productivity": 92,
-};
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
-const stageDescriptions: Record<string, string> = {
-  "Innovation Trigger":
-    "Early excitement. Technology is emerging, but practical adoption is still low.",
-  "Peak of Inflated Expectations":
-    "Maximum hype. Expectations are extremely high, but reality may not match.",
-  "Trough of Disillusionment":
-    "Initial hype fades. Failures and skepticism increase.",
-  "Slope of Enlightenment":
-    "Real-world understanding improves. Practical use cases emerge.",
-  "Plateau of Productivity":
-    "Technology matures. Stable adoption and real business value.",
-};
+import Sidebar from "./components/Sidebar";
 
-function Modal({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/70 z-50"
-          />
+const API =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:8000";
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-900 border border-zinc-700 rounded-3xl p-8 w-[90%] max-w-2xl shadow-2xl"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">{title}</h2>
-
-              <button onClick={onClose}>
-                <X className="text-zinc-400 hover:text-white" />
-              </button>
-            </div>
-
-            {children}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
-function StatCard({
-  icon,
-  title,
-  value,
-  subtitle,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: any;
-  subtitle: string;
-  onClick?: () => void;
-}) {
-  return (
-    <motion.button
-      whileHover={{ y: -6 }}
-      onClick={onClick}
-      className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl text-left w-full hover:border-cyan-500 transition"
-    >
-      <div className="text-cyan-400 mb-4 text-2xl">{icon}</div>
-      <h3 className="text-zinc-400">{title}</h3>
-      <p className="text-3xl font-bold mt-2">{value}</p>
-      <p className="text-sm text-zinc-500 mt-2">{subtitle}</p>
-    </motion.button>
-  );
-}
+const COLORS = ["#06b6d4", "#8b5cf6", "#ec4899"];
 
 export default function Home() {
-  const [keyword, setKeyword] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [keyword, setKeyword] = useState("quantum computing");
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const [sentimentOpen, setSentimentOpen] = useState(false);
-  const [trendOpen, setTrendOpen] = useState(false);
-  const [stageOpen, setStageOpen] = useState(false);
+  const quickTopics = [
+    "ai",
+    "artificial intelligence",
+    "blockchain",
+    "quantum computing",
+    "web3",
+    "metaverse",
+    "ai agents",
+  ];
 
-  const analyzeKeyword = async (searchTerm?: string) => {
-    const query = searchTerm || keyword;
+  const analyzeTechnology = async (term?: string) => {
+    const query = term || keyword;
 
     if (!query.trim()) return;
 
     setLoading(true);
 
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:8000/analyze/${query}`
+      const res = await axios.get(
+        `${API}/analyze/${encodeURIComponent(query)}`
       );
 
-      setResult(response.data);
+      setData(res.data);
       setKeyword(query);
-    } catch {
-      setResult(null);
-      alert("Backend connection failed. Make sure the server is running.");
+    } catch (err) {
+      console.error(err);
+      alert("Backend connection failed");
     }
 
     setLoading(false);
   };
 
-  const sentimentData = result?.sentiment
-    ? [
-        { name: "Positive", value: result.sentiment.positive * 100 },
-        { name: "Negative", value: result.sentiment.negative * 100 },
-        { name: "Neutral", value: result.sentiment.neutral * 100 },
-      ]
-    : [];
+  useEffect(() => {
+    analyzeTechnology("quantum computing");
+  }, []);
+
+  const trendLabels = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+  ];
 
   const trendData =
-    result?.trends?.trend_points?.length > 0
-      ? result.trends.trend_points.map((value: number, index: number) => ({
-          name: index,
-          value,
-        }))
-      : [
-          { name: 1, value: 20 },
-          { name: 2, value: 35 },
-          { name: 3, value: 28 },
-          { name: 4, value: 55 },
-          { name: 5, value: 62 },
-          { name: 6, value: 58 },
-          { name: 7, value: 74 },
-        ];
+    data?.trends?.trend_points?.map(
+      (v: number, i: number) => ({
+        month: trendLabels[i] || `M${i + 1}`,
+        value: v,
+      })
+    ) || [];
 
-  const COLORS = ["#06b6d4", "#ef4444", "#6b7280"];
+  const sentimentData = [
+    {
+      name: "Positive",
+      value: Math.round((data?.sentiment?.positive || 0) * 100),
+    },
+    {
+      name: "Neutral",
+      value: Math.round((data?.sentiment?.neutral || 0) * 100),
+    },
+    {
+      name: "Negative",
+      value: Math.round((data?.sentiment?.negative || 0) * 100),
+    },
+  ];
 
-  const stagePosition = result?.analysis
-    ? stagePositions[result.analysis.stage] || 50
-    : 50;
+  return (
+    <div className="min-h-screen bg-[#040816] text-white relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 left-20 w-80 h-80 bg-cyan-500/10 blur-3xl rounded-full" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-600/10 blur-3xl rounded-full" />
+      </div>
 
-  const aiExplanation = result?.analysis
-    ? `Strong GitHub adoption, media attention, community engagement, trend momentum, and AI sentiment indicate ${result.analysis.stage.toLowerCase()}.`
-    : "";
-      return (
-    <main className="min-h-screen bg-black text-white px-8 py-10">
-      <div className="max-w-7xl mx-auto">
+      <div className="relative z-10 flex">
+      <Sidebar active="Dashboard" />
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
-        >
-          <h1 className="text-6xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            Hype Cycle Tracker
-          </h1>
-
-          <p className="text-zinc-400 mt-3 text-lg">
-            Real-time Gartner-style technology hype intelligence
-          </p>
-        </motion.div>
-
-        {/* Search */}
-        <div className="flex gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search AI, blockchain, quantum..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") analyzeKeyword();
-            }}
-            className="flex-1 p-5 rounded-2xl bg-zinc-900 border border-zinc-700 text-white text-lg outline-none focus:border-cyan-400 shadow-lg"
-          />
-
-          <button
-            onClick={() => analyzeKeyword()}
-            disabled={loading}
-            className="px-8 rounded-2xl bg-cyan-500 hover:bg-cyan-400 font-bold transition shadow-lg disabled:opacity-50"
-          >
-            {loading ? "Analyzing..." : "Analyze"}
-          </button>
-        </div>
-
-        {/* Quick chips */}
-        <div className="flex flex-wrap gap-3 mb-10">
-          {[
-            "llm",
-            "artificial intelligence",
-            "blockchain",
-            "quantum computing",
-            "web3",
-            "metaverse",
-            "ai agents",
-          ].map((term) => (
-            <button
-              key={term}
-              onClick={() => analyzeKeyword(term)}
-              className="px-4 py-2 rounded-full bg-zinc-900 border border-zinc-700 hover:border-cyan-400 text-sm transition"
-            >
-              {term}
-            </button>
-          ))}
-        </div>
-
-        {result && !loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-8"
-          >
-
-            {/* Hero */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-5xl font-bold">{result.keyword}</h2>
-
-                  <div className="flex items-center gap-3 mt-4">
-                    <Sparkles className="text-cyan-400" />
-                    <p className="text-cyan-400 text-xl font-semibold">
-                      {result.analysis.stage}
-                    </p>
-                  </div>
-
-                  <p className="text-zinc-400 mt-4 leading-relaxed max-w-3xl">
-                    {aiExplanation}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-zinc-500">Confidence</p>
-                  <p className="text-4xl font-bold">
-                    {Math.round(result.analysis.confidence * 100)}%
-                  </p>
-
-                  <span
-                    className={`mt-3 inline-block px-4 py-2 rounded-full text-sm border ${
-                      result.source === "live"
-                        ? "bg-green-900/30 border-green-500 text-green-400"
-                        : "bg-cyan-900/30 border-cyan-500 text-cyan-400"
-                    }`}
-                  >
-                    {result.source}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-8 h-3 bg-zinc-800 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${result.analysis.hype_score}%` }}
-                  transition={{ duration: 1 }}
-                  className="h-full bg-gradient-to-r from-cyan-400 to-blue-500"
-                />
-              </div>
+        {/* Main */}
+        <main className="flex-1 px-10 py-8">
+          {/* Top */}
+          <div className="flex justify-between items-center mb-10">
+            <div>
+              <h1 className="text-4xl font-bold">Welcome back, JD 👋</h1>
+              <p className="text-gray-400 mt-2">
+                Real-time emerging technology intelligence
+              </p>
             </div>
 
-            {/* Gartner curve */}
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              onClick={() => setStageOpen(true)}
-              className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 cursor-pointer"
-            >
-              <div className="flex justify-between mb-6">
-                <h3 className="text-2xl font-bold">
-                  Gartner Hype Curve Position
-                </h3>
+            <div className="flex gap-4">
+              <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                <Moon />
+              </button>
 
-                <Info className="text-zinc-400" />
+              <button className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                <Bell />
+              </button>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+
+              <input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") analyzeTechnology();
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-5 outline-none focus:border-cyan-400"
+                placeholder="Search technology..."
+              />
+            </div>
+
+            <button
+              onClick={() => analyzeTechnology()}
+              className="px-10 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 font-semibold"
+            >
+              {loading ? "Analyzing..." : "Analyze"}
+            </button>
+          </div>
+
+          {/* Quick Topics */}
+          <div className="flex flex-wrap gap-3 mb-8">
+            {quickTopics.map((topic) => (
+              <button
+                key={topic}
+                onClick={() => analyzeTechnology(topic)}
+                className="px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10"
+              >
+                {topic}
+              </button>
+            ))}
+          </div>
+
+          {/* Hero */}
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 mb-8">
+            <div className="flex justify-between items-start gap-8">
+              <div className="flex gap-6 flex-1">
+                <div className="w-24 h-24 rounded-3xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center">
+                  <Atom className="w-12 h-12 text-cyan-300" />
+                </div>
+
+                <div className="flex-1">
+                  <h2 className="text-5xl font-bold capitalize mb-3">
+                    {data?.keyword || keyword}
+                  </h2>
+
+                  <p className="text-cyan-400 text-xl font-semibold mb-4">
+                    {data?.analysis?.stage}
+                  </p>
+
+                  <p className="text-gray-300 mb-6">
+                    Live AI classification using GitHub, Reddit, News, trends,
+                    and sentiment signals.
+                  </p>
+
+                  <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${data?.analysis?.hype_score || 0}%`,
+                      }}
+                      transition={{ duration: 1 }}
+                      className="h-full bg-gradient-to-r from-cyan-400 to-purple-500"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="relative h-56">
-                <svg viewBox="0 0 1000 300" className="w-full h-full">
+              <div className="w-72 rounded-3xl border border-white/10 bg-black/20 p-6">
+                <p className="text-gray-400 mb-3">Confidence</p>
+
+                <h3 className="text-6xl font-bold">
+                  {Math.round((data?.analysis?.confidence || 0) * 100)}%
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          {/* PREMIUM GARTNER */}
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#0a1025] to-[#060b1a] backdrop-blur-xl p-8 mb-8 relative overflow-hidden">
+            {/* Background glow */}
+            <div className="absolute inset-0">
+              <div className="absolute top-10 left-20 w-96 h-96 bg-cyan-500/10 blur-3xl rounded-full" />
+              <div className="absolute bottom-10 right-20 w-96 h-96 bg-purple-600/10 blur-3xl rounded-full" />
+            </div>
+
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-3xl font-bold">Gartner Hype Curve Position</h3>
+                  <Info className="text-gray-400" />
+                </div>
+
+                <button
+                  onClick={() => window.open("https://www.gartner.com/en/research/methodologies/gartner-hype-cycle", "_blank")}
+                  className="flex items-center gap-2 text-cyan-300 hover:text-cyan-200"
+                >
+                  View Full Hype Cycle
+                  <ExternalLink size={18} />
+                </button>
+              </div>
+
+              {/* Progress text */}
+              <div className="flex justify-between text-sm text-gray-400 mb-6">
+                <span>{data?.analysis?.stage}</span>
+                <span>{data?.analysis?.hype_score || 0}% progress</span>
+              </div>
+
+              {/* Chart */}
+              <div className="relative h-[420px]">
+                {/* Axis */}
+                <div className="absolute left-10 top-10 bottom-20 w-[2px] bg-white/10" />
+                <div className="absolute left-10 right-10 bottom-20 h-[2px] bg-white/10" />
+
+                {/* Grid lines */}
+                <div className="absolute left-[22%] top-10 bottom-20 w-px bg-white/5" />
+                <div className="absolute left-[42%] top-10 bottom-20 w-px bg-white/5" />
+                <div className="absolute left-[62%] top-10 bottom-20 w-px bg-white/5" />
+                <div className="absolute left-[82%] top-10 bottom-20 w-px bg-white/5" />
+
+                {/* SVG */}
+                <svg viewBox="0 0 1200 400" className="w-full h-full absolute inset-0">
                   <path
-                    d="M50 250 C180 180, 250 20, 400 40 C500 60, 450 250, 620 250 C760 250, 760 120, 950 150"
-                    stroke="#06b6d4"
-                    strokeWidth="6"
+                    d="M 120 250 C 220 250, 260 80, 450 60 C 600 50, 650 290, 820 270 C 940 250, 1040 110, 1140 120"
+                    stroke="url(#gartnerGlow)"
+                    strokeWidth="8"
                     fill="none"
                     strokeLinecap="round"
+                    filter="url(#glow)"
                   />
+
+                  <defs>
+                    <linearGradient id="gartnerGlow">
+                      <stop offset="0%" stopColor="#00d9ff" />
+                      <stop offset="50%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#d946ef" />
+                    </linearGradient>
+
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                      <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
                 </svg>
 
+                {/* Dynamic marker */}
                 <motion.div
-                  initial={{ left: "0%" }}
-                  animate={{ left: `${stagePosition}%` }}
-                  transition={{ duration: 1.2 }}
-                  className="absolute top-[42%] w-5 h-5 rounded-full bg-cyan-400 shadow-[0_0_20px_#06b6d4]"
-                />
+                  animate={{
+                    left:
+                      data?.analysis?.hype_score <= 20 ? "16%" :
+                      data?.analysis?.hype_score <= 40 ? "34%" :
+                      data?.analysis?.hype_score <= 60 ? "56%" :
+                      data?.analysis?.hype_score <= 80 ? "74%" : "90%",
+                    top:
+                      data?.analysis?.hype_score <= 20 ? "48%" :
+                      data?.analysis?.hype_score <= 40 ? "22%" :
+                      data?.analysis?.hype_score <= 60 ? "56%" :
+                      data?.analysis?.hype_score <= 80 ? "48%" : "28%",
+                  }}
+                  transition={{ duration: 1 }}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 z-50"
+                >
+                  <div className="absolute top-8 left-1/2 -translate-x-1/2 h-36 border-l-2 border-dashed border-cyan-400/60" />
+                  <div className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap text-cyan-300 font-medium">Current Position</div>
+                  <div className="w-8 h-8 rounded-full bg-cyan-400 border-4 border-white shadow-[0_0_30px_#00d9ff]" />
+                </motion.div>
+
+                {/* Labels */}
+                <div className="absolute bottom-0 left-[12%] text-center">
+                  <p className="text-cyan-300 font-medium">Innovation</p>
+                  <p className="text-cyan-300 font-bold">Trigger</p>
+                </div>
+                <div className="absolute bottom-0 left-[28%] text-center">
+                  <p className="text-gray-300">Peak of Inflated</p>
+                  <p className="text-gray-300">Expectations</p>
+                </div>
+                <div className="absolute bottom-0 left-[48%] text-center">
+                  <p className="text-gray-300">Trough of</p>
+                  <p className="text-gray-300">Disillusionment</p>
+                </div>
+                <div className="absolute bottom-0 left-[68%] text-center">
+                  <p className="text-gray-300">Slope of</p>
+                  <p className="text-gray-300">Enlightenment</p>
+                </div>
+                <div className="absolute bottom-0 left-[86%] -translate-x-1/2 text-center">
+                  <p className="text-gray-300">Plateau of</p>
+                  <p className="text-gray-300">Productivity</p>
+                </div>
+
+                <div className="absolute left-0 top-[45%] -rotate-90 text-gray-400">Expectations</div>
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-400">Time</div>
               </div>
-            </motion.div>
-
-            {/* Stats */}
-            <div className="grid md:grid-cols-4 gap-6">
-
-              <StatCard
-                icon={<Globe />}
-                title="GitHub"
-                value={result.github.repo_count}
-                subtitle={`Stars: ${result.github.total_stars_top10}`}
-                onClick={() =>
-                  window.open(
-                    `https://github.com/search?q=${result.keyword}`,
-                    "_blank"
-                  )
-                }
-              />
-
-              <StatCard
-                icon={<Newspaper />}
-                title="News"
-                value={result.news.article_count}
-                subtitle="Media hype"
-                onClick={() =>
-                  window.open(
-                    `https://news.google.com/search?q=${result.keyword}`,
-                    "_blank"
-                  )
-                }
-              />
-
-              <StatCard
-                icon={<MessageCircle />}
-                title="Reddit"
-                value={result.reddit.post_count}
-                subtitle={`Engagement: ${result.reddit.engagement}`}
-                onClick={() =>
-                  window.open(
-                    `https://www.reddit.com/search/?q=${result.keyword}`,
-                    "_blank"
-                  )
-                }
-              />
-
-              <StatCard
-                icon={<Brain />}
-                title="Sentiment"
-                value={`${Math.round(result.sentiment.positive * 100)}%`}
-                subtitle="Click for details"
-                onClick={() => setSentimentOpen(true)}
-              />
             </div>
-                        {/* Charts */}
-            <div className="grid md:grid-cols-2 gap-8">
+          </div>
 
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                onClick={() => setTrendOpen(true)}
-                className="bg-zinc-900 rounded-3xl p-6 border border-zinc-800 cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="text-cyan-400" />
-                    <h3 className="text-xl font-bold">Trend Momentum</h3>
-                  </div>
+          {/* Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8 relative z-50">
+            <MetricCard
+              title="GitHub Adoption"
+              value={data?.github?.repo_count || 0}
+              subtitle={`${data?.github?.total_stars_top10 || 0} stars tracked`}
+              icon={<Cpu className="text-cyan-300" />}
+              link={`https://github.com/search?q=${encodeURIComponent(keyword)}`}
+            />
 
-                  <ExternalLink className="text-zinc-400" />
+            <MetricCard
+              title="Media Buzz"
+              value={data?.news?.article_count || 0}
+              subtitle="Live news intelligence"
+              icon={<Newspaper className="text-purple-300" />}
+              link={`https://news.google.com/search?q=${encodeURIComponent(keyword)}`}
+            />
+
+            <MetricCard
+              title="Community Activity"
+              value={data?.reddit?.post_count || 0}
+              subtitle="discussions tracked"
+              icon={<MessageCircle className="text-orange-300" />}
+              link={`https://reddit.com/search/?q=${encodeURIComponent(keyword)}`}
+            />
+
+            <MetricCard
+              title="AI Sentiment"
+              value={`${Math.round((data?.sentiment?.positive || 0) * 100)}%`}
+              subtitle="Positive sentiment"
+              icon={<Brain className="text-pink-300" />}
+            />
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Trend */}
+            <div className="xl:col-span-2 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold">Trend Momentum</h3>
+                  <p className="text-gray-400">Live trend movement</p>
                 </div>
 
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={trendData}>
-                    <CartesianGrid stroke="#27272a" />
-                    <XAxis dataKey="name" stroke="#71717a" />
-                    <YAxis stroke="#71717a" />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#06b6d4"
-                      strokeWidth={3}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </motion.div>
+                <TrendingUp className="text-cyan-300" />
+              </div>
 
-              <div className="bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="text-cyan-400" />
-                  <h3 className="text-xl font-bold">Sentiment Analysis</h3>
-                </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={trendData}>
+                  <CartesianGrid
+                    stroke="rgba(255,255,255,0.06)"
+                    vertical={false}
+                  />
+                  <XAxis dataKey="month" stroke="#9ca3af" />
+                  <YAxis stroke="#9ca3af" />
+                  <Tooltip
+                    formatter={(value) => [`${value}`, "Trend Score"]}
+                    contentStyle={{
+                      background: "#0f172a",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "16px",
+                      color: "#fff",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#06b6d4"
+                    strokeWidth={4}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
 
-                <ResponsiveContainer width="100%" height={300}>
+            {/* Sentiment */}
+            <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold">Sentiment Analysis</h3>
+                <p className="text-gray-400">NLP classification</p>
+              </div>
+
+              <div className="relative h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={sentimentData}
+                      innerRadius={70}
+                      outerRadius={110}
                       dataKey="value"
-                      outerRadius={100}
-                      label
                     >
                       {sentimentData.map((_: any, index: number) => (
                         <Cell key={index} fill={COLORS[index]} />
                       ))}
                     </Pie>
-                    <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
+
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <h4 className="text-4xl font-bold">
+                    {Math.round((data?.sentiment?.positive || 0) * 100)}%
+                  </h4>
+                  <p className="text-gray-400">Positive</p>
+                </div>
               </div>
             </div>
-          </motion.div>
-        )}
-
-        {/* Footer */}
-        <footer className="mt-20 text-center text-zinc-500 text-sm">
-          Built by JD • AI-powered hype intelligence tracker
-        </footer>
+          </div>
+        </main>
       </div>
+    </div>
+  );
+}
 
-      {/* Sentiment Modal */}
-      <Modal
-        isOpen={sentimentOpen}
-        onClose={() => setSentimentOpen(false)}
-        title="Detailed Sentiment Breakdown"
+function MetricCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  link,
+}: {
+  title: string;
+  value: any;
+  subtitle: string;
+  icon: React.ReactNode;
+  link?: string;
+}) {
+  return (
+    <a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block"
+    >
+      <motion.div
+        whileHover={{ y: -6 }}
+        className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 cursor-pointer hover:bg-white/10 transition"
       >
-        {result && (
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <span>Positive</span>
-              <span>{Math.round(result.sentiment.positive * 100)}%</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Negative</span>
-              <span>{Math.round(result.sentiment.negative * 100)}%</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Neutral</span>
-              <span>{Math.round(result.sentiment.neutral * 100)}%</span>
-            </div>
-
-            <p className="text-zinc-400 pt-4">
-              Sentiment is derived using transformer-based NLP over Reddit titles
-              and media headlines.
-            </p>
+        <div className="flex justify-between items-start mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center">
+            {icon}
           </div>
-        )}
-      </Modal>
 
-      {/* Trend Modal */}
-      <Modal
-        isOpen={trendOpen}
-        onClose={() => setTrendOpen(false)}
-        title="Expanded Trend Momentum"
-      >
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={trendData}>
-            <CartesianGrid stroke="#27272a" />
-            <XAxis dataKey="name" stroke="#71717a" />
-            <YAxis stroke="#71717a" />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="#06b6d4"
-              strokeWidth={4}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </Modal>
+          <ExternalLink className="text-gray-500" />
+        </div>
 
-      {/* Stage Modal */}
-      <Modal
-        isOpen={stageOpen}
-        onClose={() => setStageOpen(false)}
-        title="Hype Stage Explanation"
-      >
-        {result && (
-          <div>
-            <h3 className="text-cyan-400 text-xl font-semibold mb-4">
-              {result.analysis.stage}
-            </h3>
-
-            <p className="text-zinc-300 leading-relaxed">
-              {stageDescriptions[result.analysis.stage]}
-            </p>
-          </div>
-        )}
-      </Modal>
-    </main>
+        <p className="text-gray-400 mb-2">{title}</p>
+        <h3 className="text-4xl font-bold mb-2">{value}</h3>
+        <p className="text-sm text-gray-500">{subtitle}</p>
+      </motion.div>
+    </a>
   );
 }
