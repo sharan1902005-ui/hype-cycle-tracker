@@ -8,3 +8,4 @@ pytrends
 cachetools
 praw
 textblob
+redis
