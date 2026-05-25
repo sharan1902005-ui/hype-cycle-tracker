@@ -55,6 +55,7 @@ export default function Home() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSentimentModal, setShowSentimentModal] = useState(false);
 
   const quickTopics = [
     "ai",
@@ -78,7 +79,12 @@ export default function Home() {
         `${API}/analyze/${encodeURIComponent(query)}`
       );
 
-      setData(res.data);
+      const payload = res.data;
+      console.log("API RESPONSE:", payload);
+      console.log("GITHUB:", payload.github);
+      console.log("NEWS:", payload.news);
+      console.log("REDDIT:", payload.reddit);
+      setData(payload);
       setKeyword(query);
 
       setSearchHistory((prev) => {
@@ -547,8 +553,13 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8 relative z-50">
             <MetricCard
               title="GitHub Adoption"
-              value={data?.github?.repo_count || 0}
-              subtitle={`${data?.github?.total_stars_top10 || 0} stars tracked`}
+              value={data?.github?.repo_count?.toLocaleString() || 0}
+              subtitle={
+                <>
+                  ⭐ {data?.github?.total_stars?.toLocaleString() || 0} stars •{" "}
+                  🍴 {data?.github?.total_forks?.toLocaleString() || 0} forks
+                </>
+              }
               icon={<Cpu className="text-cyan-300" />}
               link={`https://github.com/search?q=${encodeURIComponent(keyword)}`}
             />
@@ -556,7 +567,7 @@ export default function Home() {
             <MetricCard
               title="Media Buzz"
               value={data?.news?.article_count || 0}
-              subtitle="Live news intelligence"
+              subtitle="Live news articles"
               icon={<Newspaper className="text-purple-300" />}
               link={`https://news.google.com/search?q=${encodeURIComponent(keyword)}`}
             />
@@ -564,7 +575,7 @@ export default function Home() {
             <MetricCard
               title="Community Activity"
               value={data?.reddit?.post_count || 0}
-              subtitle="discussions tracked"
+              subtitle={`Engagement: ${data?.reddit?.engagement?.toLocaleString() || 0}`}
               icon={<MessageCircle className="text-orange-300" />}
               link={`https://reddit.com/search/?q=${encodeURIComponent(keyword)}`}
             />
@@ -572,8 +583,9 @@ export default function Home() {
             <MetricCard
               title="AI Sentiment"
               value={`${Math.round((data?.sentiment?.positive || 0) * 100)}%`}
-              subtitle="Positive sentiment"
+              subtitle="NLP sentiment signal"
               icon={<Brain className="text-pink-300" />}
+              onClick={() => setShowSentimentModal(true)}
             />
           </div>
 
@@ -684,36 +696,39 @@ function MetricCard({
   subtitle,
   icon,
   link,
+  onClick,
 }: {
   title: string;
   value: any;
-  subtitle: string;
+  subtitle: string | React.ReactNode;
   icon: React.ReactNode;
   link?: string;
+  onClick?: () => void;
 }) {
-  return (
-    <a
-      href={link}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block"
+  const content = (
+    <motion.div
+      whileHover={{ y: -6 }}
+      className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 cursor-pointer hover:bg-white/10 transition"
     >
-      <motion.div
-        whileHover={{ y: -6 }}
-        className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 cursor-pointer hover:bg-white/10 transition"
-      >
-        <div className="flex justify-between items-start mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center">
-            {icon}
-          </div>
-
-          <ExternalLink className="text-gray-500" />
+      <div className="flex justify-between items-start mb-6">
+        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center">
+          {icon}
         </div>
+        <ExternalLink className="text-gray-500" />
+      </div>
+      <p className="text-gray-400 mb-2">{title}</p>
+      <h3 className="text-4xl font-bold mb-2">{value}</h3>
+      <p className="text-sm text-gray-500">{subtitle}</p>
+    </motion.div>
+  );
 
-        <p className="text-gray-400 mb-2">{title}</p>
-        <h3 className="text-4xl font-bold mb-2">{value}</h3>
-        <p className="text-sm text-gray-500">{subtitle}</p>
-      </motion.div>
+  if (onClick) {
+    return <div onClick={onClick}>{content}</div>;
+  }
+
+  return (
+    <a href={link} target="_blank" rel="noopener noreferrer" className="block">
+      {content}
     </a>
   );
 }

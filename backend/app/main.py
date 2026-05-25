@@ -17,14 +17,14 @@ app.add_middleware(
 )
 
 
-def calculate_hype_stage(score):
-    if score <= 20:
+def calculate_hype_stage(score: float) -> str:
+    if score < 20:
         return "Innovation Trigger"
-    elif score <= 40:
+    elif score < 40:
         return "Peak of Inflated Expectations"
-    elif score <= 60:
+    elif score < 55:
         return "Trough of Disillusionment"
-    elif score <= 80:
+    elif score < 75:
         return "Slope of Enlightenment"
     return "Plateau of Productivity"
 
@@ -37,45 +37,68 @@ def home():
 @app.get("/analyze/{keyword}")
 def analyze(keyword: str):
     github = get_github_data(keyword)
-    news = fetch_news_data(keyword)
+    news   = fetch_news_data(keyword)
     reddit = fetch_reddit_data(keyword)
 
-    sentiment_texts = []
-    sentiment_texts.extend(news.get("headlines", []))
-    sentiment_texts.extend(reddit.get("sample_posts", []))
+    # Sentiment from real text
+    texts = news.get("headlines", []) + reddit.get("sample_posts", [])
+    sentiment = analyze_sentiment(texts)
 
-    sentiment = analyze_sentiment(sentiment_texts)
+    # Weighted hype score (0-100)
+    # GitHub adoption  35%
+    github_component   = min(github.get("adoption_score", 0) / 100, 1) * 35
 
-    github_score = min(github.get("repo_count", 0) / 5000, 30)
-    news_score = min(news.get("article_count", 0) * 2, 25)
-    reddit_score = min(reddit.get("post_count", 0), 20)
-    sentiment_score = sentiment.get("positive", 0) * 25
+    # News buzz        20%
+    news_component     = min(news.get("article_count", 0) / 10, 1) * 20
 
-    total_score = round(github_score + news_score + reddit_score + sentiment_score)
-    confidence = round(total_score / 100, 2)
+    # Community        20%
+    reddit_component   = min(reddit.get("post_count", 0) / 25, 1) * 20
 
+    # Sentiment        25%
+    sentiment_component = sentiment.get("positive", 0) * 25
+
+    hype_score = round(github_component + news_component + reddit_component + sentiment_component, 1)
+    confidence = round(hype_score / 100, 2)
+
+    # Trend points — simulate momentum curve
     trend_points = [
-        max(total_score - 20, 5),
-        max(total_score - 12, 10),
-        max(total_score - 8, 15),
-        max(total_score - 4, 20),
-        total_score,
-        min(total_score + 5, 100),
+        round(max(hype_score * 0.4, 2), 1),
+        round(max(hype_score * 0.55, 3), 1),
+        round(max(hype_score * 0.7, 5), 1),
+        round(max(hype_score * 0.82, 8), 1),
+        round(max(hype_score * 0.91, 10), 1),
+        round(hype_score, 1),
+        round(min(hype_score * 1.05, 100), 1),
+        round(min(hype_score * 1.08, 100), 1),
+        round(min(hype_score * 1.06, 100), 1),
+        round(min(hype_score * 1.03, 100), 1),
     ]
 
     return {
         "keyword": keyword,
         "analysis": {
-            "stage": calculate_hype_stage(total_score),
+            "stage":      calculate_hype_stage(hype_score),
             "confidence": confidence,
-            "hype_score": total_score,
+            "hype_score": hype_score,
         },
-        "github": github,
-        "news": news,
-        "reddit": reddit,
+        "github": {
+            "repo_count":     github.get("repo_count", 0),
+            "total_stars":    github.get("total_stars", 0),
+            "total_forks":    github.get("total_forks", 0),
+            "adoption_score": github.get("adoption_score", 0),
+        },
+        "news": {
+            "article_count": news.get("article_count", 0),
+            "headlines":     news.get("headlines", []),
+        },
+        "reddit": {
+            "post_count":   reddit.get("post_count", 0),
+            "engagement":   reddit.get("engagement", 0),
+            "sample_posts": reddit.get("sample_posts", []),
+        },
         "sentiment": sentiment,
         "trends": {
             "trend_points": trend_points,
-            "source": "live",
+            "source": "computed",
         },
     }
