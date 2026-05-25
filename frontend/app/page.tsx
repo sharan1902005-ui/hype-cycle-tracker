@@ -7,7 +7,7 @@ import {
   Search,
   Bell,
   Moon,
-  Home,
+  Home as HomeIcon,
   Cpu,
   Bookmark,
   BarChart3,
@@ -217,7 +217,7 @@ export default function Home() {
             </div>
 
             <nav className="space-y-3 mb-10">
-              <SidebarItem icon={<Home />} label="Dashboard" active />
+              <SidebarItem icon={<HomeIcon />} label="Dashboard" active />
               <SidebarItem icon={<Search />} label="Search" />
               <SidebarItem icon={<Cpu />} label="Technologies" />
               <SidebarItem icon={<Bookmark />} label="Watchlist" />
