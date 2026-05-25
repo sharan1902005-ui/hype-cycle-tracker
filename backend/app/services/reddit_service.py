@@ -1,34 +1,51 @@
 import requests
+from bs4 import BeautifulSoup
 
-def get_reddit_data(keyword: str):
-    url = f"https://www.reddit.com/search.json?q={keyword}&limit=10"
 
-    headers = {
-        "User-Agent": "HypeCycleTracker/1.0"
-    }
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0 Safari/537.36"
+    )
+}
 
-    response = requests.get(url, headers=headers)
-    data = response.json()
 
-    posts = data["data"]["children"]
+def fetch_reddit_data(keyword: str):
+    try:
+        url = f"https://www.reddit.com/search/?q={keyword}"
 
-    post_count = len(posts)
+        response = requests.get(url, headers=HEADERS, timeout=15)
+        response.raise_for_status()
 
-    total_score = 0
-    total_comments = 0
-    titles = []
+        soup = BeautifulSoup(response.text, "html.parser")
+        text = soup.get_text().lower()
 
-    for post in posts:
-        post_data = post["data"]
-        total_score += post_data.get("score", 0)
-        total_comments += post_data.get("num_comments", 0)
-        titles.append(post_data.get("title", ""))
+        post_mentions = text.count("comments")
+        upvote_mentions = text.count("upvote")
+        engagement = post_mentions * 5 + upvote_mentions * 3
 
-    engagement = total_score + total_comments
+        sample_posts = []
+        for line in text.split("\n"):
+            line = line.strip()
+            if keyword.lower() in line and len(line) > 20 and len(sample_posts) < 5:
+                sample_posts.append(line[:120])
 
-    return {
-        "keyword": keyword,
-        "post_count": post_count,
-        "engagement": engagement,
-        "titles": titles
-    }
+        return {
+            "keyword": keyword,
+            "post_count": max(post_mentions, 0),
+            "engagement": engagement,
+            "sample_posts": sample_posts,
+            "source": "reddit_live",
+        }
+
+    except Exception as e:
+        print("Reddit Error:", str(e))
+        return {
+            "keyword": keyword,
+            "post_count": 0,
+            "engagement": 0,
+            "sample_posts": [],
+            "source": "reddit_error",
+            "error": str(e),
+        }
