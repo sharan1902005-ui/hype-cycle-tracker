@@ -31,38 +31,38 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl p-8 shadow-2xl"
+        className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-6 shadow-2xl"
       >
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Sparkles size={36} />
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <Sparkles size={22} />
           </div>
 
-          <h1 className="text-3xl font-bold mt-6">Welcome Back</h1>
+          <h1 className="text-2xl font-bold mt-4">Welcome Back</h1>
 
-          <p className="text-gray-400 mt-2 text-center">
-            Sign in to access your Hype Cycle intelligence dashboard
+          <p className="text-gray-400 mt-1 text-sm text-center">
+            Sign in to your Hype Cycle dashboard
           </p>
         </div>
 
         {/* Form */}
         <div className="space-y-5">
           <div className="relative">
-            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="email"
               placeholder="Email address"
-              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-5 py-4 outline-none focus:border-cyan-400 transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-cyan-400 transition"
             />
           </div>
 
           <div className="relative">
-            <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="password"
               placeholder="Password"
-              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-5 py-4 outline-none focus:border-cyan-400 transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-cyan-400 transition"
             />
           </div>
 
@@ -77,19 +77,19 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <button className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 font-semibold flex items-center justify-center gap-2 hover:scale-[1.02] transition shadow-lg shadow-cyan-500/20">
+          <button className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 font-semibold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition shadow-lg shadow-cyan-500/20">
             Sign In
-            <ArrowRight size={18} />
+            <ArrowRight size={15} />
           </button>
 
-          <button className="w-full py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition flex items-center justify-center gap-3">
-            <Globe />
+          <button className="w-full py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition text-sm flex items-center justify-center gap-2">
+            <Globe size={15} />
             Continue with GitHub
           </button>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-400 mt-8">
+        <p className="text-center text-gray-400 mt-6 text-sm">
           Don&apos;t have an account?{" "}
           <button className="text-purple-300 hover:text-purple-200">
             Create one

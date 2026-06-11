@@ -31,19 +31,19 @@ export default function LandingPage() {
 
         <div className="absolute inset-0 pointer-events-none">
 
-          <div className="absolute top-32 left-16 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-400/20 backdrop-blur-xl animate-pulse">
+            <div className="absolute top-16 left-16 px-4 py-2 rounded-full bg-cyan-500/5 border border-cyan-400/20 backdrop-blur-xl animate-pulse">
             AI Agents
           </div>
 
-          <div className="absolute top-56 right-20 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-400/20 backdrop-blur-xl animate-pulse">
+          <div className="absolute top-16 right-16 px-4 py-2 rounded-full bg-purple-500/5 border border-purple-400/20 backdrop-blur-xl animate-pulse">
             Quantum Computing
           </div>
 
-          <div className="absolute bottom-52 left-24 px-4 py-2 rounded-full bg-pink-500/10 border border-pink-400/20 backdrop-blur-xl animate-pulse">
+          <div className="absolute bottom-16 left-16 px-4 py-2 rounded-full bg-pink-500/5 border border-pink-400/20 backdrop-blur-xl animate-pulse">
             Blockchain
           </div>
 
-          <div className="absolute bottom-32 right-16 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-400/20 backdrop-blur-xl animate-pulse">
+          <div className="absolute bottom-16 right-16 px-4 py-2 rounded-full bg-cyan-500/5 border border-cyan-400/20 backdrop-blur-xl animate-pulse">
             Cybersecurity
           </div>
 
@@ -55,9 +55,9 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 max-w-5xl mx-auto">
 
-          <h1 className="text-5xl md:text-7xl font-bold mb-4">
+          <h1 className="text-6xl md:text-8xl font-bold mb-4">
             Hype Cycle Tracker
           </h1>
 
@@ -89,31 +89,42 @@ export default function LandingPage() {
           sentiment analysis.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 max-w-6xl">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-16 max-w-6xl">
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
             <h3 className="font-bold mb-2">GitHub Adoption</h3>
             <p className="text-gray-400 text-sm">Track developer momentum and repository growth.</p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
             <h3 className="font-bold mb-2">Media Buzz</h3>
             <p className="text-gray-400 text-sm">Monitor global news and technology coverage.</p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
             <h3 className="font-bold mb-2">Community Activity</h3>
             <p className="text-gray-400 text-sm">Analyze discussions and engagement signals.</p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
             <h3 className="font-bold mb-2">AI Sentiment</h3>
             <p className="text-gray-400 text-sm">Measure public perception with AI.</p>
           </div>
 
         </div>
 
-        <div className="flex flex-wrap justify-center gap-8 mb-10 text-center">
+        <Link href="/dashboard">
+          <button
+            className="px-10 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 font-semibold text-xl shadow-lg hover:scale-105 transition mb-12"
+          >
+            <span className="flex items-center gap-3">
+              Get Started
+              <ArrowRight size={20} />
+            </span>
+          </button>
+        </Link>
+
+        <div className="flex flex-wrap justify-center gap-8 mb-12 text-center">
 
           <div>
             <h2 className="text-3xl font-bold text-cyan-400">10K+</h2>
@@ -132,37 +143,7 @@ export default function LandingPage() {
 
         </div>
 
-        <Link href="/dashboard">
-          <button
-            className="
-            group
-            relative
-            px-10
-            py-5
-            rounded-2xl
-            overflow-hidden
-            font-semibold
-            text-lg
-            bg-gradient-to-r
-            from-cyan-500
-            via-blue-500
-            to-purple-600
-            hover:scale-105
-            transition-all
-            shadow-[0_0_40px_rgba(6,182,212,0.3)]
-            "
-          >
-            <span className="relative z-10 flex items-center gap-3">
-              Get Started
-              <ArrowRight
-                className="group-hover:translate-x-1 transition"
-                size={22}
-              />
-            </span>
-          </button>
-        </Link>
-
-        <div className="absolute bottom-6 text-gray-500 text-sm">
+        <div className="mt-12 text-gray-500 text-sm">
           Built with Next.js • FastAPI • AI Analytics
         </div>
 
