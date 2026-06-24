@@ -1,7 +1,6 @@
 "use client";
 
-import Sidebar from "../components/Sidebar";
-
+import Sidebar from "../components/Sidebar";  
 const reports = [
   { title: "AI Hype Analysis Q2 2025", date: "May 2025", stage: "Peak of Inflated Expectations" },
   { title: "Blockchain Recovery Report", date: "Apr 2025", stage: "Trough of Disillusionment" },
