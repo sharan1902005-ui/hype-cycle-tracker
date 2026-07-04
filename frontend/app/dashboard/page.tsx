@@ -47,9 +47,47 @@ const API =
 
 const COLORS = ["#06b6d4", "#8b5cf6", "#ec4899"];
 
+type AnalysisResponse = {
+  keyword?: string;
+  github?: {
+    repo_count?: number;
+    total_stars?: number;
+    total_forks?: number;
+    adoption_score?: number;
+  };
+  news?: {
+    article_count?: number;
+  };
+  reddit?: {
+    post_count?: number;
+    engagement?: number;
+  };
+  sentiment?: {
+    positive?: number;
+    negative?: number;
+    neutral?: number;
+  };
+  trends?: {
+    trend_points?: number[];
+  };
+  analysis?: {
+    hype_score?: number;
+    confidence?: number;
+    stage?: string;
+  };
+};
+
+const EMPTY_VALUE = "N/A";
+
+const formatNumber = (value: number | undefined) =>
+  value === undefined ? EMPTY_VALUE : value.toLocaleString();
+
+const formatPercent = (value: number | undefined) =>
+  value === undefined ? EMPTY_VALUE : `${Math.round(value * 100)}%`;
+
 export default function Home() {
   const [keyword, setKeyword] = useState("quantum computing");
-  const [data, setData] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [compareData, setCompareData] = useState<any[]>([]);
   const [watchlist, setWatchlist] = useState<string[]>([]);
@@ -79,12 +117,9 @@ export default function Home() {
         `${API}/analyze/${encodeURIComponent(query)}`
       );
 
-      const payload = res.data;
-      console.log("API RESPONSE:", payload);
-      console.log("GITHUB:", payload.github);
-      console.log("NEWS:", payload.news);
-      console.log("REDDIT:", payload.reddit);
-      setData(payload);
+      const payload: AnalysisResponse = res.data;
+      console.log("API:", payload);
+      setAnalysis(payload);
       setKeyword(query);
 
       setSearchHistory((prev) => {
@@ -101,16 +136,22 @@ export default function Home() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    console.log("State:", analysis);
+  }, [analysis]);
+
   const compareTechnology = async (term: string) => {
     try {
       const res = await axios.get(`${API}/analyze/${encodeURIComponent(term)}`);
       const payload = res.data;
       const newTech = {
         name: term,
-        github: payload?.github?.repo_count || 0,
-        news: payload?.news?.article_count || 0,
-        reddit: payload?.reddit?.post_count || 0,
-        sentiment: Math.round((payload?.sentiment?.positive || 0) * 100),
+        github: payload.github?.repo_count,
+        news: payload.news?.article_count,
+        reddit: payload.reddit?.post_count,
+        sentiment: payload.sentiment?.positive === undefined
+          ? undefined
+          : Math.round(payload.sentiment.positive * 100),
         stage: payload?.analysis?.stage || "Unknown",
       };
       setCompareData((prev) => {
@@ -167,7 +208,7 @@ export default function Home() {
   ];
 
   const trendData =
-    data?.trends?.trend_points?.map(
+    analysis?.trends?.trend_points?.map(
       (v: number, i: number) => ({
         month: trendLabels[i] || `M${i + 1}`,
         value: v,
@@ -177,15 +218,15 @@ export default function Home() {
   const sentimentData = [
     {
       name: "Positive",
-      value: Math.round((data?.sentiment?.positive || 0) * 100),
+      value: Math.round((analysis?.sentiment?.positive ?? 0) * 100),
     },
     {
       name: "Neutral",
-      value: Math.round((data?.sentiment?.neutral || 0) * 100),
+      value: Math.round((analysis?.sentiment?.neutral ?? 0) * 100),
     },
     {
       name: "Negative",
-      value: Math.round((data?.sentiment?.negative || 0) * 100),
+      value: Math.round((analysis?.sentiment?.negative ?? 0) * 100),
     },
   ];
 
@@ -389,11 +430,11 @@ export default function Home() {
 
                 <div className="flex-1">
                   <h2 className="text-3xl md:text-5xl font-bold capitalize mb-3">
-                    {data?.keyword || keyword}
+                    {analysis?.keyword || keyword}
                   </h2>
 
                   <p className="text-cyan-400 text-xl font-semibold mb-4">
-                    {data?.analysis?.stage}
+                    {analysis?.analysis?.stage || EMPTY_VALUE}
                   </p>
 
                   <p className="text-gray-300 mb-6">
@@ -405,7 +446,7 @@ export default function Home() {
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{
-                        width: `${data?.analysis?.hype_score || 0}%`,
+                        width: analysis?.analysis?.hype_score === undefined ? "0%" : `${analysis.analysis.hype_score}%`,
                       }}
                       transition={{ duration: 1 }}
                       className="h-full bg-gradient-to-r from-cyan-400 to-purple-500"
@@ -418,13 +459,13 @@ export default function Home() {
                 <p className="text-gray-400 mb-3">Confidence</p>
 
                 <h3 className="text-6xl font-bold">
-                  {Math.round((data?.analysis?.confidence || 0) * 100)}%
+                  {formatPercent(analysis?.analysis?.confidence)}
                 </h3>
               </div>
             </div>
           </div>
 
-          <AIInsights data={data} />
+          <AIInsights analysis={analysis} />
 
           <ComparePanel compareData={compareData} />
 
@@ -455,8 +496,8 @@ export default function Home() {
 
               {/* Progress text */}
               <div className="flex justify-between text-sm text-gray-400 mb-6">
-                <span>{data?.analysis?.stage}</span>
-                <span>{data?.analysis?.hype_score || 0}% progress</span>
+                <span>{analysis?.analysis?.stage || EMPTY_VALUE}</span>
+                <span>{analysis?.analysis?.hype_score === undefined ? EMPTY_VALUE : `${analysis.analysis.hype_score}% progress`}</span>
               </div>
 
               {/* Chart */}
@@ -503,15 +544,15 @@ export default function Home() {
                 <motion.div
                   animate={{
                     left:
-                      data?.analysis?.hype_score <= 20 ? "16%" :
-                      data?.analysis?.hype_score <= 40 ? "34%" :
-                      data?.analysis?.hype_score <= 60 ? "56%" :
-                      data?.analysis?.hype_score <= 80 ? "74%" : "90%",
+                      (analysis?.analysis?.hype_score ?? 0) <= 20 ? "16%" :
+                      (analysis?.analysis?.hype_score ?? 0) <= 40 ? "34%" :
+                      (analysis?.analysis?.hype_score ?? 0) <= 60 ? "56%" :
+                      (analysis?.analysis?.hype_score ?? 0) <= 80 ? "74%" : "90%",
                     top:
-                      data?.analysis?.hype_score <= 20 ? "48%" :
-                      data?.analysis?.hype_score <= 40 ? "22%" :
-                      data?.analysis?.hype_score <= 60 ? "56%" :
-                      data?.analysis?.hype_score <= 80 ? "48%" : "28%",
+                      (analysis?.analysis?.hype_score ?? 0) <= 20 ? "48%" :
+                      (analysis?.analysis?.hype_score ?? 0) <= 40 ? "22%" :
+                      (analysis?.analysis?.hype_score ?? 0) <= 60 ? "56%" :
+                      (analysis?.analysis?.hype_score ?? 0) <= 80 ? "48%" : "28%",
                   }}
                   transition={{ duration: 1 }}
                   className="absolute -translate-x-1/2 -translate-y-1/2 z-50"
@@ -553,11 +594,11 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8 relative z-50">
             <MetricCard
               title="GitHub Adoption"
-              value={data?.github?.repo_count?.toLocaleString() || 0}
+              value={formatNumber(analysis?.github?.repo_count)}
               subtitle={
                 <>
-                  ⭐ {data?.github?.total_stars?.toLocaleString() || 0} stars •{" "}
-                  🍴 {data?.github?.total_forks?.toLocaleString() || 0} forks
+                  ⭐ {formatNumber(analysis?.github?.total_stars)} stars •{" "}
+                  🍴 {formatNumber(analysis?.github?.total_forks)} forks
                 </>
               }
               icon={<Cpu className="text-cyan-300" />}
@@ -566,7 +607,7 @@ export default function Home() {
 
             <MetricCard
               title="Media Buzz"
-              value={data?.news?.article_count || 0}
+              value={formatNumber(analysis?.news?.article_count)}
               subtitle="Live news articles"
               icon={<Newspaper className="text-purple-300" />}
               link={`https://news.google.com/search?q=${encodeURIComponent(keyword)}`}
@@ -574,15 +615,15 @@ export default function Home() {
 
             <MetricCard
               title="Community Activity"
-              value={data?.reddit?.post_count || 0}
-              subtitle={`Engagement: ${data?.reddit?.engagement?.toLocaleString() || 0}`}
+              value={formatNumber(analysis?.reddit?.post_count)}
+              subtitle={`Engagement: ${formatNumber(analysis?.reddit?.engagement)}`}
               icon={<MessageCircle className="text-orange-300" />}
               link={`https://reddit.com/search/?q=${encodeURIComponent(keyword)}`}
             />
 
             <MetricCard
               title="AI Sentiment"
-              value={`${Math.round((data?.sentiment?.positive || 0) * 100)}%`}
+              value={formatPercent(analysis?.sentiment?.positive)}
               subtitle="NLP sentiment signal"
               icon={<Brain className="text-pink-300" />}
               onClick={() => setShowSentimentModal(true)}
@@ -654,7 +695,7 @@ export default function Home() {
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <h4 className="text-4xl font-bold">
-                    {Math.round((data?.sentiment?.positive || 0) * 100)}%
+                    {formatPercent(analysis?.sentiment?.positive)}
                   </h4>
                   <p className="text-gray-400">Positive</p>
                 </div>
@@ -732,3 +773,4 @@ function MetricCard({
     </a>
   );
 }
+

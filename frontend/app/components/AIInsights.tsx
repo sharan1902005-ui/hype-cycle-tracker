@@ -4,36 +4,43 @@ import { motion } from "framer-motion";
 import { Brain } from "lucide-react";
 
 type Props = {
-  data: any;
+  analysis: any;
 };
 
-export default function AIInsights({ data }: Props) {
-  if (!data) return null;
+const formatNumber = (value: number | undefined) =>
+  value === undefined ? "N/A" : value.toLocaleString();
 
-  const stage = data?.analysis?.stage || "Unknown";
-  const github = data?.github?.repo_count || 0;
-  const news = data?.news?.article_count || 0;
-  const reddit = data?.reddit?.post_count || 0;
-  const sentiment = Math.round((data?.sentiment?.positive || 0) * 100);
+const formatPercent = (value: number | undefined) =>
+  value === undefined ? "N/A" : `${Math.round(value * 100)}%`;
+
+export default function AIInsights({ analysis }: Props) {
+  if (!analysis) return null;
+
+  const keyword = analysis.keyword ?? "This technology";
+  const stage = analysis.analysis?.stage ?? "Unknown";
+  const github = formatNumber(analysis.github?.repo_count);
+  const news = formatNumber(analysis.news?.article_count);
+  const reddit = formatNumber(analysis.reddit?.post_count);
+  const sentiment = formatPercent(analysis.sentiment?.positive);
 
   const generateInsight = () => {
     if (stage === "Innovation Trigger") {
-      return `${data.keyword} is currently in the Innovation Trigger phase due to growing developer adoption (${github.toLocaleString()} repositories), emerging media attention (${news} articles), and early community discussion (${reddit} Reddit mentions).`;
+      return `${keyword} is currently in the Innovation Trigger phase due to growing developer adoption (${github} repositories), emerging media attention (${news} articles), and early community discussion (${reddit} Reddit mentions).`;
     }
 
     if (stage === "Peak of Inflated Expectations") {
-      return `${data.keyword} appears to be at Peak of Inflated Expectations with strong media hype, rapid community engagement, and aggressive early adoption signals.`;
+      return `${keyword} appears to be at Peak of Inflated Expectations with strong media hype, rapid community engagement, and aggressive early adoption signals.`;
     }
 
     if (stage === "Trough of Disillusionment") {
-      return `${data.keyword} is entering a correction phase where expectations may have exceeded practical adoption, despite earlier hype momentum.`;
+      return `${keyword} is entering a correction phase where expectations may have exceeded practical adoption, despite earlier hype momentum.`;
     }
 
     if (stage === "Slope of Enlightenment") {
-      return `${data.keyword} shows maturing adoption patterns with improving practical value and more balanced market expectations.`;
+      return `${keyword} shows maturing adoption patterns with improving practical value and more balanced market expectations.`;
     }
 
-    return `${data.keyword} appears to have reached Plateau of Productivity with stable adoption and mainstream relevance.`;
+    return `${keyword} appears to have reached Plateau of Productivity with stable adoption and mainstream relevance.`;
   };
 
   return (
@@ -55,9 +62,9 @@ export default function AIInsights({ data }: Props) {
           </p>
 
           <div className="flex gap-4 mt-6 flex-wrap">
-            <Badge label={`Sentiment ${sentiment}%`} />
+            <Badge label={`Sentiment ${sentiment}`} />
             <Badge label={stage} />
-            <Badge label={`${github.toLocaleString()} GitHub repos`} />
+            <Badge label={`${github} GitHub repos`} />
           </div>
         </div>
       </div>

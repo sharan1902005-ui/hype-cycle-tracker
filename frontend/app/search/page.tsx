@@ -6,6 +6,13 @@ import { Search } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const EMPTY_VALUE = "N/A";
+
+const formatNumber = (value: number | undefined) =>
+  value === undefined ? EMPTY_VALUE : value.toLocaleString();
+
+const formatPercent = (value: number | undefined) =>
+  value === undefined ? EMPTY_VALUE : `${Math.round(value * 100)}%`;
 
 export default function SearchPage() {
   const [keyword, setKeyword] = useState("");
@@ -58,19 +65,19 @@ export default function SearchPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
               <div className="bg-white/5 rounded-2xl p-4">
                 <p className="text-gray-400 text-sm">GitHub Repos</p>
-                <p className="text-3xl font-bold">{results.github?.repo_count || 0}</p>
+                <p className="text-3xl font-bold">{formatNumber(results.github?.repo_count)}</p>
               </div>
               <div className="bg-white/5 rounded-2xl p-4">
                 <p className="text-gray-400 text-sm">News Articles</p>
-                <p className="text-3xl font-bold">{results.news?.article_count || 0}</p>
+                <p className="text-3xl font-bold">{formatNumber(results.news?.article_count)}</p>
               </div>
               <div className="bg-white/5 rounded-2xl p-4">
                 <p className="text-gray-400 text-sm">Reddit Posts</p>
-                <p className="text-3xl font-bold">{results.reddit?.post_count || 0}</p>
+                <p className="text-3xl font-bold">{formatNumber(results.reddit?.post_count)}</p>
               </div>
               <div className="bg-white/5 rounded-2xl p-4">
                 <p className="text-gray-400 text-sm">Sentiment</p>
-                <p className="text-3xl font-bold">{Math.round((results.sentiment?.positive || 0) * 100)}%</p>
+                <p className="text-3xl font-bold">{formatPercent(results.sentiment?.positive)}</p>
               </div>
             </div>
           </div>
