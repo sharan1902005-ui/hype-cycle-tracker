@@ -11,10 +11,10 @@ import {
 
 type CompareData = {
   name: string;
-  github: number;
-  news: number;
-  reddit: number;
-  sentiment: number;
+  github?: number;
+  news?: number;
+  reddit?: number;
+  sentiment?: number;
   stage: string;
 };
 
@@ -25,9 +25,9 @@ type Props = {
 export default function ComparePanel({ compareData }: Props) {
   if (!compareData?.length) return null;
 
-  const maxGithub = Math.max(...compareData.map((x) => x.github), 1);
-  const maxNews = Math.max(...compareData.map((x) => x.news), 1);
-  const maxReddit = Math.max(...compareData.map((x) => x.reddit), 1);
+  const maxGithub = Math.max(...compareData.map((x) => x.github ?? 0), 1);
+  const maxNews = Math.max(...compareData.map((x) => x.news ?? 0), 1);
+  const maxReddit = Math.max(...compareData.map((x) => x.reddit ?? 0), 1);
 
   return (
     <motion.div
@@ -56,7 +56,7 @@ export default function ComparePanel({ compareData }: Props) {
               </div>
 
               <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10">
-                {tech.sentiment}% Positive
+                {tech.sentiment === undefined ? "N/A" : `${tech.sentiment}% Positive`}
               </span>
             </div>
 
@@ -78,11 +78,11 @@ function MetricBar({
   icon,
 }: {
   label: string;
-  value: number;
+  value?: number;
   max: number;
   icon: React.ReactNode;
 }) {
-  const width = (value / max) * 100;
+  const width = value === undefined ? 0 : (value / max) * 100;
 
   return (
     <div className="mb-5">
@@ -91,7 +91,7 @@ function MetricBar({
           {icon}
           <span>{label}</span>
         </div>
-        <span className="text-gray-400">{value.toLocaleString()}</span>
+        <span className="text-gray-400">{value === undefined ? "N/A" : value.toLocaleString()}</span>
       </div>
 
       <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden">

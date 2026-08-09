@@ -2,9 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Brain } from "lucide-react";
+import type { AnalysisResponse } from "@/lib/types";
 
 type Props = {
-  analysis: any;
+  analysis: AnalysisResponse | null;
 };
 
 const formatNumber = (value: number | undefined) =>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import axios from "axios";
 import { Search } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import type { AnalysisResponse } from "@/lib/types";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const EMPTY_VALUE = "N/A";
@@ -16,7 +17,7 @@ const formatPercent = (value: number | undefined) =>
 
 export default function SearchPage() {
   const [keyword, setKeyword] = useState("");
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<AnalysisResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   const search = async () => {

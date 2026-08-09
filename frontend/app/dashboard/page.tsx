@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
 import {
@@ -40,6 +41,8 @@ import {
 import Sidebar from "../components/Sidebar";
 import AIInsights from "../components/AIInsights";
 import ComparePanel from "../components/ComparePanel";
+import { createReportFromAnalysis, saveReport } from "@/lib/reports";
+import type { AnalysisResponse } from "@/lib/types";
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -47,53 +50,65 @@ const API =
 
 const COLORS = ["#06b6d4", "#8b5cf6", "#ec4899"];
 
-type AnalysisResponse = {
-  keyword?: string;
-  github?: {
-    repo_count?: number;
-    total_stars?: number;
-    total_forks?: number;
-    adoption_score?: number;
-  };
-  news?: {
-    article_count?: number;
-  };
-  reddit?: {
-    post_count?: number;
-    engagement?: number;
-  };
-  sentiment?: {
-    positive?: number;
-    negative?: number;
-    neutral?: number;
-  };
-  trends?: {
-    trend_points?: number[];
-  };
-  analysis?: {
-    hype_score?: number;
-    confidence?: number;
-    stage?: string;
-  };
-};
-
 const EMPTY_VALUE = "N/A";
 
-const formatNumber = (value: number | undefined) =>
-  value === undefined ? EMPTY_VALUE : value.toLocaleString();
+const formatNumber = (value: number | null | undefined) =>
+  value === undefined || value === null ? EMPTY_VALUE : value.toLocaleString();
 
-const formatPercent = (value: number | undefined) =>
-  value === undefined ? EMPTY_VALUE : `${Math.round(value * 100)}%`;
+const formatPercent = (value: number | null | undefined) =>
+  value === undefined || value === null ? EMPTY_VALUE : `${Math.round(value * 100)}%`;
+
+const isValidSentimentValue = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+const getSentimentChartData = (sentiment: AnalysisResponse["sentiment"]) => {
+  if (
+    !sentiment ||
+    !isValidSentimentValue(sentiment.positive) ||
+    !isValidSentimentValue(sentiment.neutral) ||
+    !isValidSentimentValue(sentiment.negative)
+  ) {
+    return null;
+  }
+
+  const total = sentiment.positive + sentiment.neutral + sentiment.negative;
+  if (total <= 0) return null;
+
+  const rounded = [
+    { name: "Positive", value: Math.round((sentiment.positive / total) * 100) },
+    { name: "Neutral", value: Math.round((sentiment.neutral / total) * 100) },
+    { name: "Negative", value: Math.round((sentiment.negative / total) * 100) },
+  ];
+  const delta = 100 - rounded.reduce((sum, item) => sum + item.value, 0);
+  const largestIndex = rounded.reduce(
+    (largest, item, index) => (item.value > rounded[largest].value ? index : largest),
+    0
+  );
+  rounded[largestIndex].value += delta;
+
+  return rounded;
+};
+
+type CompareItem = {
+  name: string;
+  github?: number;
+  news?: number;
+  reddit?: number;
+  sentiment?: number;
+  stage: string;
+};
 
 export default function Home() {
+  const router = useRouter();
   const [keyword, setKeyword] = useState("quantum computing");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [compareData, setCompareData] = useState<any[]>([]);
+  const [generatedReportId, setGeneratedReportId] = useState<string | null>(null);
+  const [reportMessage, setReportMessage] = useState("");
+  const [compareData, setCompareData] = useState<CompareItem[]>([]);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showSentimentModal, setShowSentimentModal] = useState(false);
 
   const quickTopics = [
     "ai",
@@ -121,6 +136,8 @@ export default function Home() {
       console.log("API:", payload);
       setAnalysis(payload);
       setKeyword(query);
+      setGeneratedReportId(null);
+      setReportMessage("");
 
       setSearchHistory((prev) => {
         const filtered = prev.filter((x) => x !== query);
@@ -165,13 +182,16 @@ export default function Home() {
   };
 
   useEffect(() => {
-    analyzeTechnology("quantum computing");
+    queueMicrotask(() => {
+      analyzeTechnology("quantum computing");
 
-    const saved = localStorage.getItem("watchlist");
-    if (saved) setWatchlist(JSON.parse(saved));
+      const saved = localStorage.getItem("watchlist");
+      if (saved) setWatchlist(JSON.parse(saved));
 
-    const savedHistory = localStorage.getItem("searchHistory");
-    if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
+      const savedHistory = localStorage.getItem("searchHistory");
+      if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const removeHistoryItem = (tech: string) => {
@@ -194,41 +214,27 @@ export default function Home() {
     localStorage.setItem("watchlist", JSON.stringify(updated));
   };
 
-  const trendLabels = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-  ];
+  const generateReport = () => {
+    if (!analysis) return;
+
+    const report = createReportFromAnalysis(analysis);
+    saveReport(report);
+    setGeneratedReportId(report.id);
+    setReportMessage("Report generated successfully");
+  };
 
   const trendData =
     analysis?.trends?.trend_points?.map(
       (v: number, i: number) => ({
-        month: trendLabels[i] || `M${i + 1}`,
+        period: `P${i + 1}`,
         value: v,
       })
     ) || [];
 
-  const sentimentData = [
-    {
-      name: "Positive",
-      value: Math.round((analysis?.sentiment?.positive ?? 0) * 100),
-    },
-    {
-      name: "Neutral",
-      value: Math.round((analysis?.sentiment?.neutral ?? 0) * 100),
-    },
-    {
-      name: "Negative",
-      value: Math.round((analysis?.sentiment?.negative ?? 0) * 100),
-    },
-  ];
+  const sentimentData = getSentimentChartData(analysis?.sentiment);
+  const dominantSentiment = sentimentData?.reduce((dominant, item) =>
+    item.value > dominant.value ? item : dominant
+  );
 
   return (
     <div className="min-h-screen bg-[#040816] text-white relative overflow-hidden">
@@ -452,6 +458,28 @@ export default function Home() {
                       className="h-full bg-gradient-to-r from-cyan-400 to-purple-500"
                     />
                   </div>
+
+                  {analysis && (
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={generateReport}
+                        className="px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-purple-600 font-semibold hover:opacity-90 transition"
+                      >
+                        Generate Report
+                      </button>
+                      {generatedReportId && (
+                        <button
+                          onClick={() => router.push(`/reports/${generatedReportId}`)}
+                          className="px-5 py-3 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition"
+                        >
+                          View Report →
+                        </button>
+                      )}
+                      {reportMessage && (
+                        <span className="text-sm text-cyan-300">{reportMessage}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -594,7 +622,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8 relative z-50">
             <MetricCard
               title="GitHub Adoption"
-              value={formatNumber(analysis?.github?.repo_count)}
+              value={analysis?.github?.error ? "Unavailable" : formatNumber(analysis?.github?.repo_count)}
               subtitle={
                 <>
                   ⭐ {formatNumber(analysis?.github?.total_stars)} stars •{" "}
@@ -607,26 +635,29 @@ export default function Home() {
 
             <MetricCard
               title="Media Buzz"
-              value={formatNumber(analysis?.news?.article_count)}
-              subtitle="Live news articles"
+              value={analysis?.news?.error ? "Unavailable" : formatNumber(analysis?.news?.article_count)}
+              subtitle={analysis?.news?.error ? "News data unavailable" : "Live news articles"}
               icon={<Newspaper className="text-purple-300" />}
               link={`https://news.google.com/search?q=${encodeURIComponent(keyword)}`}
             />
 
             <MetricCard
               title="Community Activity"
-              value={formatNumber(analysis?.reddit?.post_count)}
-              subtitle={`Engagement: ${formatNumber(analysis?.reddit?.engagement)}`}
+              value={analysis?.reddit?.error ? "Unavailable" : formatNumber(analysis?.reddit?.post_count)}
+              subtitle={
+                analysis?.reddit?.error
+                  ? "Community data unavailable"
+                  : `Engagement: ${formatNumber(analysis?.reddit?.engagement)}`
+              }
               icon={<MessageCircle className="text-orange-300" />}
               link={`https://reddit.com/search/?q=${encodeURIComponent(keyword)}`}
             />
 
             <MetricCard
               title="AI Sentiment"
-              value={formatPercent(analysis?.sentiment?.positive)}
+              value={sentimentData ? `${sentimentData[0].value}%` : EMPTY_VALUE}
               subtitle="NLP sentiment signal"
               icon={<Brain className="text-pink-300" />}
-              onClick={() => setShowSentimentModal(true)}
             />
           </div>
 
@@ -643,31 +674,42 @@ export default function Home() {
                 <TrendingUp className="text-cyan-300" />
               </div>
 
-              <ResponsiveContainer width="100%" height={320} minHeight={320}>
-                <LineChart data={trendData}>
-                  <CartesianGrid
-                    stroke="rgba(255,255,255,0.06)"
-                    vertical={false}
-                  />
-                  <XAxis dataKey="month" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" />
-                  <Tooltip
-                    formatter={(value) => [`${value}`, "Trend Score"]}
-                    contentStyle={{
-                      background: "#0f172a",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "16px",
-                      color: "#fff",
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#06b6d4"
-                    strokeWidth={4}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {trendData.length ? (
+                <div className="w-full min-w-0 h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
+                    <LineChart data={trendData}>
+                      <CartesianGrid
+                        stroke="rgba(255,255,255,0.06)"
+                        vertical={false}
+                      />
+                      <XAxis dataKey="period" stroke="#9ca3af" />
+                      <YAxis stroke="#9ca3af" />
+                      <Tooltip
+                        formatter={(value) => [
+                          typeof value === "number" ? value.toFixed(1) : value,
+                          "Trend Score",
+                        ]}
+                        contentStyle={{
+                          background: "#0f172a",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          borderRadius: "16px",
+                          color: "#fff",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#06b6d4"
+                        strokeWidth={4}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[320px] flex items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-gray-400">
+                  Trend data unavailable
+                </div>
+              )}
             </div>
 
             {/* Sentiment */}
@@ -677,29 +719,52 @@ export default function Home() {
                 <p className="text-gray-400">NLP classification</p>
               </div>
 
-              <div className="relative h-[300px]">
-                <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                  <PieChart>
-                    <Pie
-                      data={sentimentData}
-                      innerRadius={70}
-                      outerRadius={110}
-                      dataKey="value"
-                    >
-                      {sentimentData.map((_: any, index: number) => (
-                        <Cell key={index} fill={COLORS[index]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
+              {sentimentData && dominantSentiment ? (
+                <>
+                  <div className="relative h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
+                      <PieChart>
+                        <Pie
+                          data={sentimentData}
+                          innerRadius={70}
+                          outerRadius={110}
+                          dataKey="value"
+                        >
+                          {sentimentData.map((item, index: number) => (
+                            <Cell key={item.name} fill={COLORS[index]} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <h4 className="text-4xl font-bold">
-                    {formatPercent(analysis?.sentiment?.positive)}
-                  </h4>
-                  <p className="text-gray-400">Positive</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <h4 className="text-4xl font-bold">
+                        {dominantSentiment.value}%
+                      </h4>
+                      <p className="text-gray-400">{dominantSentiment.name}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {sentimentData.map((item, index) => (
+                      <div key={item.name} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: COLORS[index] }}
+                          />
+                          <span className="text-gray-300">{item.name}</span>
+                        </div>
+                        <span className="font-semibold">{item.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-gray-400 text-center px-6">
+                  No sentiment data available
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </main>
@@ -740,12 +805,17 @@ function MetricCard({
   onClick,
 }: {
   title: string;
-  value: any;
+  value: React.ReactNode;
   subtitle: string | React.ReactNode;
   icon: React.ReactNode;
   link?: string;
   onClick?: () => void;
 }) {
+  const displaySubtitle =
+    title === "GitHub Adoption" && value === "Unavailable"
+      ? "GitHub data unavailable"
+      : subtitle;
+
   const content = (
     <motion.div
       whileHover={{ y: -6 }}
@@ -759,7 +829,7 @@ function MetricCard({
       </div>
       <p className="text-gray-400 mb-2">{title}</p>
       <h3 className="text-4xl font-bold mb-2">{value}</h3>
-      <p className="text-sm text-gray-500">{subtitle}</p>
+      <p className="text-sm text-gray-500">{displaySubtitle}</p>
     </motion.div>
   );
 
