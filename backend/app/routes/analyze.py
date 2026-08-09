@@ -9,6 +9,49 @@ from app.analytics.scoring import calculate_hype_stage
 
 router = APIRouter()
 
+
+def _normalize_github_data(keyword: str, data: dict) -> dict:
+    if "error" in data:
+        return {
+            **data,
+            "keyword": keyword,
+            "repo_count": data.get("repo_count", 0),
+            "total_stars": data.get("total_stars", 0),
+            "total_forks": data.get("total_forks", 0),
+            "adoption_score": data.get("adoption_score", 0),
+            "activity_score": data.get("activity_score", 0),
+        }
+
+    return data
+
+
+def _normalize_news_data(keyword: str, data: dict) -> dict:
+    if "error" in data or data.get("source") == "news_error":
+        return {
+            **data,
+            "keyword": keyword,
+            "article_count": data.get("article_count", 0),
+            "headlines": data.get("headlines", []),
+            "error": data.get("error") or "News API unavailable",
+        }
+
+    return data
+
+
+def _normalize_reddit_data(keyword: str, data: dict) -> dict:
+    if "error" in data:
+        return {
+            **data,
+            "keyword": keyword,
+            "post_count": data.get("post_count", 0),
+            "engagement": data.get("engagement", 0),
+            "sample_posts": data.get("sample_posts", []),
+            "titles": data.get("titles", []),
+        }
+
+    return data
+
+
 @router.get("/analyze/{keyword}")
 def analyze_keyword(keyword: str):
     cache_key = keyword.lower()
@@ -19,9 +62,9 @@ def analyze_keyword(keyword: str):
         return cached_result
 
     try:
-        github_data = get_github_data(keyword)
-        news_data = get_news_data(keyword)
-        reddit_data = get_reddit_data(keyword)
+        github_data = _normalize_github_data(keyword, get_github_data(keyword))
+        news_data = _normalize_news_data(keyword, get_news_data(keyword))
+        reddit_data = _normalize_reddit_data(keyword, get_reddit_data(keyword))
         trends_data = get_trends_data(keyword)
 
         combined_texts = []
@@ -55,13 +98,14 @@ def analyze_keyword(keyword: str):
 
         return live_result
 
-    except Exception:
+    except Exception as e:
+        print("Analyze Route Error:", str(e))
         if cache_key in analysis_cache:
             fallback = dict(analysis_cache[cache_key])
             fallback["source"] = "fallback_cache"
             return fallback
 
-        return {"error": "Analysis temporarily unavailable"}
+        return {"error": str(e), "source": "analysis_error"}
 
 @router.get("/warm-cache")
 def warm_cache():
