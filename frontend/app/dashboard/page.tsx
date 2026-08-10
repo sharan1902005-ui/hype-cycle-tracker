@@ -650,7 +650,7 @@ export default function Home() {
                   : `Engagement: ${formatNumber(analysis?.reddit?.engagement)}`
               }
               icon={<MessageCircle className="text-orange-300" />}
-              link={`https://old.reddit.com/search?q=${encodeURIComponent(keyword)}`}
+              link={`https://old.reddit.com/search?q=${encodeURIComponent(keyword)}&sort=new`}
             />
 
             <MetricCard
