@@ -21,6 +21,7 @@ import {
   YAxis,
 } from "recharts";
 import Sidebar from "@/app/components/Sidebar";
+import { getCommunityActivity } from "@/lib/community";
 import { deleteReport, getReport } from "@/lib/reports";
 import type { GeneratedReport } from "@/lib/types";
 
@@ -40,7 +41,10 @@ const formatDate = (value: string) =>
 const sentimentPercent = (value: number | undefined) =>
   value === undefined ? "N/A" : `${Math.round(value * 100)}%`;
 
-function buildSummary(report: GeneratedReport) {
+function buildSummary(
+  report: GeneratedReport,
+  communityActivity: ReturnType<typeof getCommunityActivity>
+) {
   const parts = [
     `${report.keyword} is classified as ${report.stage} with a hype score of ${report.hypeScore} and ${formatPercent(report.confidence)} confidence.`,
   ];
@@ -59,13 +63,9 @@ function buildSummary(report: GeneratedReport) {
     parts.push(`Media buzz includes ${formatNumber(report.news.article_count)} articles.`);
   }
 
-  if (report.reddit?.error) {
-    parts.push("Community data is unavailable.");
-  } else if (report.reddit) {
-    parts.push(
-      `Community activity includes ${formatNumber(report.reddit.post_count)} posts with ${formatNumber(report.reddit.engagement)} engagement.`
-    );
-  }
+  parts.push(
+    `Community activity includes ${formatNumber(communityActivity.postCount)} posts with ${formatNumber(communityActivity.engagement)} engagement.`
+  );
 
   return parts.join(" ");
 }
@@ -89,6 +89,10 @@ export default function ReportDetailPage() {
         period: `P${index + 1}`,
         value,
       })) ?? [],
+    [report]
+  );
+  const communityActivity = useMemo(
+    () => getCommunityActivity(report?.keyword ?? "", report?.reddit),
     [report]
   );
 
@@ -169,14 +173,8 @@ export default function ReportDetailPage() {
           </ReportCard>
 
           <ReportCard title="Community Activity" icon={<MessageCircle className="text-pink-300" />}>
-            {report.reddit?.error ? (
-              <Unavailable message="Community data unavailable" />
-            ) : (
-              <>
-                <Metric label="Posts" value={formatNumber(report.reddit?.post_count)} />
-                <Metric label="Engagement" value={formatNumber(report.reddit?.engagement)} />
-              </>
-            )}
+            <Metric label="Posts" value={formatNumber(communityActivity.postCount)} />
+            <Metric label="Engagement" value={formatNumber(communityActivity.engagement)} />
           </ReportCard>
         </div>
 
@@ -256,7 +254,7 @@ export default function ReportDetailPage() {
 
         <section className="rounded-3xl border border-white/10 bg-white/5 p-8">
           <h2 className="text-2xl font-bold mb-4">AI Summary</h2>
-          <p className="text-gray-300 leading-relaxed">{buildSummary(report)}</p>
+          <p className="text-gray-300 leading-relaxed">{buildSummary(report, communityActivity)}</p>
         </section>
       </main>
     </div>

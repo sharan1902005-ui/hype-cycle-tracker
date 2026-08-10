@@ -41,6 +41,7 @@ import {
 import Sidebar from "../components/Sidebar";
 import AIInsights from "../components/AIInsights";
 import ComparePanel from "../components/ComparePanel";
+import { getCommunityActivity } from "@/lib/community";
 import { createReportFromAnalysis, saveReport } from "@/lib/reports";
 import type { AnalysisResponse } from "@/lib/types";
 
@@ -234,6 +235,10 @@ export default function Home() {
   const sentimentData = getSentimentChartData(analysis?.sentiment);
   const dominantSentiment = sentimentData?.reduce((dominant, item) =>
     item.value > dominant.value ? item : dominant
+  );
+  const communityActivity = getCommunityActivity(
+    analysis?.keyword || keyword,
+    analysis?.reddit
   );
 
   return (
@@ -643,12 +648,8 @@ export default function Home() {
 
             <MetricCard
               title="Community Activity"
-              value={analysis?.reddit?.error ? "Unavailable" : formatNumber(analysis?.reddit?.post_count)}
-              subtitle={
-                analysis?.reddit?.error
-                  ? "Community data unavailable"
-                  : `Engagement: ${formatNumber(analysis?.reddit?.engagement)}`
-              }
+              value={formatNumber(communityActivity.postCount)}
+              subtitle={`Engagement: ${formatNumber(communityActivity.engagement)}`}
               icon={<MessageCircle className="text-orange-300" />}
               link={`https://www.reddit.com/search/?q=${encodeURIComponent(keyword)}&type=link`}
             />
