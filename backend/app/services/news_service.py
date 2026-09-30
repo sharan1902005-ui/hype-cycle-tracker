@@ -42,3 +42,7 @@ def fetch_news_data(keyword: str):
             "headlines": [],
             "source": "news_error",
         }
+
+
+def get_news_data(keyword: str):
+    return fetch_news_data(keyword)

@@ -5,6 +5,7 @@ from app.services.github_service import get_github_data
 from app.services.news_service import fetch_news_data
 from app.services.reddit_service import fetch_reddit_data
 from app.nlp.sentiment import analyze_sentiment
+from app.config import env_status
 
 app = FastAPI(title="Hype Cycle Tracker API")
 
@@ -31,7 +32,16 @@ def calculate_hype_stage(score: float) -> str:
 
 @app.get("/")
 def home():
-    return {"message": "Hype Cycle Tracker API running"}
+    return {
+        "message": "Hype Cycle Tracker API running",
+        "env": env_status(),
+    }
+
+
+def _metric(data: dict, key: str) -> float:
+    if "error" in data:
+        return 0
+    return data.get(key, 0)
 
 
 @app.get("/analyze/{keyword}")
@@ -46,13 +56,13 @@ def analyze(keyword: str):
 
     # Weighted hype score (0-100)
     # GitHub adoption  35%
-    github_component   = min(github.get("adoption_score", 0) / 100, 1) * 35
+    github_component   = min(_metric(github, "adoption_score") / 100, 1) * 35
 
     # News buzz        20%
-    news_component     = min(news.get("article_count", 0) / 10, 1) * 20
+    news_component     = min(_metric(news, "article_count") / 10, 1) * 20
 
     # Community        20%
-    reddit_component   = min(reddit.get("post_count", 0) / 25, 1) * 20
+    reddit_component   = min(_metric(reddit, "post_count") / 25, 1) * 20
 
     # Sentiment        25%
     sentiment_component = sentiment.get("positive", 0) * 25
@@ -81,21 +91,12 @@ def analyze(keyword: str):
             "confidence": confidence,
             "hype_score": hype_score,
         },
-        "github": {
-            "repo_count":     github.get("repo_count", 0),
-            "total_stars":    github.get("total_stars", 0),
-            "total_forks":    github.get("total_forks", 0),
-            "adoption_score": github.get("adoption_score", 0),
-        },
+        "github": github,
         "news": {
             "article_count": news.get("article_count", 0),
             "headlines":     news.get("headlines", []),
         },
-        "reddit": {
-            "post_count":   reddit.get("post_count", 0),
-            "engagement":   reddit.get("engagement", 0),
-            "sample_posts": reddit.get("sample_posts", []),
-        },
+        "reddit": reddit,
         "sentiment": sentiment,
         "trends": {
             "trend_points": trend_points,
