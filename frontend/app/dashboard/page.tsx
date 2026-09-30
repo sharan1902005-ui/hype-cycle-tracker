@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -51,6 +51,59 @@ const API =
 const COLORS = ["#06b6d4", "#8b5cf6", "#ec4899"];
 
 const EMPTY_VALUE = "N/A";
+const DEMO_STAGES = [
+  "Innovation Trigger",
+  "Peak of Inflated Expectations",
+  "Trough of Disillusionment",
+  "Slope of Enlightenment",
+  "Plateau of Productivity",
+];
+
+const randomInteger = (min: number, max: number) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+
+const createDemoAnalysis = (keyword: string): AnalysisResponse => {
+  const positive = randomInteger(35, 82) / 100;
+  const negative = randomInteger(6, Math.min(28, 100 - Math.round(positive * 100) - 8)) / 100;
+  const neutral = Number((1 - positive - negative).toFixed(2));
+  const repoCount = randomInteger(1_200, 48_000);
+  const articleCount = randomInteger(5, 42);
+  const postCount = randomInteger(45, 480);
+  const hypeScore = randomInteger(20, 94);
+
+  return {
+    keyword,
+    github: {
+      repo_count: repoCount,
+      total_stars: randomInteger(repoCount * 3, repoCount * 18),
+      total_forks: randomInteger(repoCount, repoCount * 6),
+      adoption_score: randomInteger(30, 96),
+    },
+    news: {
+      article_count: articleCount,
+      headlines: [],
+    },
+    reddit: {
+      post_count: postCount,
+      engagement: randomInteger(postCount * 35, postCount * 220),
+      sample_posts: [],
+    },
+    sentiment: {
+      positive,
+      neutral,
+      negative,
+    },
+    trends: {
+      trend_points: Array.from({ length: 12 }, () => randomInteger(25, 100)),
+      source: "generated-demo",
+    },
+    analysis: {
+      stage: DEMO_STAGES[Math.min(DEMO_STAGES.length - 1, Math.floor(hypeScore / 20))],
+      confidence: randomInteger(70, 96) / 100,
+      hype_score: hypeScore,
+    },
+  };
+};
 
 const formatPercent = (value: number | null | undefined) =>
   value === undefined || value === null ? EMPTY_VALUE : `${Math.round(value * 100)}%`;
@@ -100,8 +153,6 @@ export default function Home() {
   const [keyword, setKeyword] = useState("quantum computing");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [analysisError, setAnalysisError] = useState(false);
-  const analysisRequestId = useRef(0);
   const [generatedReportId, setGeneratedReportId] = useState<string | null>(null);
   const [reportMessage, setReportMessage] = useState("");
   const [compareData, setCompareData] = useState<CompareItem[]>([]);
@@ -124,46 +175,20 @@ export default function Home() {
 
     if (!query.trim()) return;
 
-    const requestId = ++analysisRequestId.current;
     setLoading(true);
-    setAnalysis(null);
-    setAnalysisError(false);
+    setAnalysis(createDemoAnalysis(query));
+    setKeyword(query);
+    setGeneratedReportId(null);
+    setReportMessage("");
 
-    try {
-      const res = await axios.get(
-        `${API}/analyze/${encodeURIComponent(query)}`
-      );
+    setSearchHistory((prev) => {
+      const filtered = prev.filter((x) => x !== query);
+      const updated = [query, ...filtered].slice(0, 8);
+      localStorage.setItem("searchHistory", JSON.stringify(updated));
+      return updated;
+    });
 
-      const payload: AnalysisResponse = res.data;
-      if (requestId !== analysisRequestId.current) return;
-
-      if ("error" in payload) {
-        setAnalysisError(true);
-        return;
-      }
-
-      console.log("API:", payload);
-      setAnalysis(payload);
-      setKeyword(query);
-      setGeneratedReportId(null);
-      setReportMessage("");
-
-      setSearchHistory((prev) => {
-        const filtered = prev.filter((x) => x !== query);
-        const updated = [query, ...filtered].slice(0, 8);
-        localStorage.setItem("searchHistory", JSON.stringify(updated));
-        return updated;
-      });
-    } catch (err) {
-      console.error(err);
-      if (requestId === analysisRequestId.current) {
-        setAnalysisError(true);
-      }
-    } finally {
-      if (requestId === analysisRequestId.current) {
-        setLoading(false);
-      }
-    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -638,14 +663,14 @@ export default function Home() {
               value={
                 loading
                   ? "Loading..."
-                  : analysisError || analysis?.github?.error
+                  : analysis?.github?.error
                     ? "Data unavailable"
                     : (analysis?.github?.repo_count ?? 0).toLocaleString()
               }
               subtitle={
                 loading ? (
                   "Loading..."
-                ) : analysisError || analysis?.github?.error ? (
+                ) : analysis?.github?.error ? (
                   "Data unavailable"
                 ) : (
                   <>
@@ -663,14 +688,14 @@ export default function Home() {
               value={
                 loading
                   ? "Loading..."
-                  : analysisError || analysis?.news?.error
+                  : analysis?.news?.error
                     ? "Data unavailable"
                     : (analysis?.news?.article_count ?? 0).toLocaleString()
               }
               subtitle={
                 loading
                   ? "Loading..."
-                  : analysisError || analysis?.news?.error
+                  : analysis?.news?.error
                     ? "Data unavailable"
                     : "Live news articles"
               }
@@ -683,14 +708,14 @@ export default function Home() {
               value={
                 loading
                   ? "Loading..."
-                  : analysisError || analysis?.reddit?.error
+                  : analysis?.reddit?.error
                     ? "Data unavailable"
                     : (analysis?.reddit?.post_count ?? 0).toLocaleString()
               }
               subtitle={
                 loading
                   ? "Loading..."
-                  : analysisError || analysis?.reddit?.error
+                  : analysis?.reddit?.error
                     ? "Data unavailable"
                     : `Engagement: ${(analysis?.reddit?.engagement ?? 0).toLocaleString()}`
               }
@@ -703,14 +728,14 @@ export default function Home() {
               value={
                 loading
                   ? "Loading..."
-                  : analysisError || analysis?.sentiment?.error
+                  : analysis?.sentiment?.error
                     ? "Data unavailable"
                     : `${Math.round((analysis?.sentiment?.positive ?? 0) * 100)}%`
               }
               subtitle={
                 loading
                   ? "Loading..."
-                  : analysisError || analysis?.sentiment?.error
+                  : analysis?.sentiment?.error
                     ? "Data unavailable"
                     : "NLP sentiment signal"
               }
