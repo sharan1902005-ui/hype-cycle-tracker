@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -41,7 +41,6 @@ import {
 import Sidebar from "../components/Sidebar";
 import AIInsights from "../components/AIInsights";
 import ComparePanel from "../components/ComparePanel";
-import { getCommunityActivity } from "@/lib/community";
 import { createReportFromAnalysis, saveReport } from "@/lib/reports";
 import type { AnalysisResponse } from "@/lib/types";
 
@@ -52,9 +51,6 @@ const API =
 const COLORS = ["#06b6d4", "#8b5cf6", "#ec4899"];
 
 const EMPTY_VALUE = "N/A";
-
-const formatNumber = (value: number | null | undefined) =>
-  value === undefined || value === null ? EMPTY_VALUE : value.toLocaleString();
 
 const formatPercent = (value: number | null | undefined) =>
   value === undefined || value === null ? EMPTY_VALUE : `${Math.round(value * 100)}%`;
@@ -103,7 +99,9 @@ export default function Home() {
   const router = useRouter();
   const [keyword, setKeyword] = useState("quantum computing");
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [analysisError, setAnalysisError] = useState(false);
+  const analysisRequestId = useRef(0);
   const [generatedReportId, setGeneratedReportId] = useState<string | null>(null);
   const [reportMessage, setReportMessage] = useState("");
   const [compareData, setCompareData] = useState<CompareItem[]>([]);
@@ -126,7 +124,10 @@ export default function Home() {
 
     if (!query.trim()) return;
 
+    const requestId = ++analysisRequestId.current;
     setLoading(true);
+    setAnalysis(null);
+    setAnalysisError(false);
 
     try {
       const res = await axios.get(
@@ -134,6 +135,13 @@ export default function Home() {
       );
 
       const payload: AnalysisResponse = res.data;
+      if (requestId !== analysisRequestId.current) return;
+
+      if ("error" in payload) {
+        setAnalysisError(true);
+        return;
+      }
+
       console.log("API:", payload);
       setAnalysis(payload);
       setKeyword(query);
@@ -148,10 +156,14 @@ export default function Home() {
       });
     } catch (err) {
       console.error(err);
-      alert("Backend connection failed");
+      if (requestId === analysisRequestId.current) {
+        setAnalysisError(true);
+      }
+    } finally {
+      if (requestId === analysisRequestId.current) {
+        setLoading(false);
+      }
     }
-
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -235,10 +247,6 @@ export default function Home() {
   const sentimentData = getSentimentChartData(analysis?.sentiment);
   const dominantSentiment = sentimentData?.reduce((dominant, item) =>
     item.value > dominant.value ? item : dominant
-  );
-  const communityActivity = getCommunityActivity(
-    analysis?.keyword || keyword,
-    analysis?.reddit
   );
 
   return (
@@ -627,12 +635,24 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8 relative z-50">
             <MetricCard
               title="GitHub Adoption"
-              value={analysis?.github?.error ? "Unavailable" : formatNumber(analysis?.github?.repo_count)}
+              value={
+                loading
+                  ? "Loading..."
+                  : analysisError || analysis?.github?.error
+                    ? "Data unavailable"
+                    : (analysis?.github?.repo_count ?? 0).toLocaleString()
+              }
               subtitle={
-                <>
-                  ⭐ {formatNumber(analysis?.github?.total_stars)} stars •{" "}
-                  🍴 {formatNumber(analysis?.github?.total_forks)} forks
-                </>
+                loading ? (
+                  "Loading..."
+                ) : analysisError || analysis?.github?.error ? (
+                  "Data unavailable"
+                ) : (
+                  <>
+                    ⭐ {(analysis?.github?.total_stars ?? 0).toLocaleString()} stars •{" "}
+                    🍴 {(analysis?.github?.total_forks ?? 0).toLocaleString()} forks
+                  </>
+                )
               }
               icon={<Cpu className="text-cyan-300" />}
               link={`https://github.com/search?q=${encodeURIComponent(keyword)}`}
@@ -640,24 +660,60 @@ export default function Home() {
 
             <MetricCard
               title="Media Buzz"
-              value={analysis?.news?.error ? "Unavailable" : formatNumber(analysis?.news?.article_count)}
-              subtitle={analysis?.news?.error ? "News data unavailable" : "Live news articles"}
+              value={
+                loading
+                  ? "Loading..."
+                  : analysisError || analysis?.news?.error
+                    ? "Data unavailable"
+                    : (analysis?.news?.article_count ?? 0).toLocaleString()
+              }
+              subtitle={
+                loading
+                  ? "Loading..."
+                  : analysisError || analysis?.news?.error
+                    ? "Data unavailable"
+                    : "Live news articles"
+              }
               icon={<Newspaper className="text-purple-300" />}
               link={`https://news.google.com/search?q=${encodeURIComponent(keyword)}`}
             />
 
             <MetricCard
               title="Community Activity"
-              value={formatNumber(communityActivity.postCount)}
-              subtitle={`Engagement: ${formatNumber(communityActivity.engagement)}`}
+              value={
+                loading
+                  ? "Loading..."
+                  : analysisError || analysis?.reddit?.error
+                    ? "Data unavailable"
+                    : (analysis?.reddit?.post_count ?? 0).toLocaleString()
+              }
+              subtitle={
+                loading
+                  ? "Loading..."
+                  : analysisError || analysis?.reddit?.error
+                    ? "Data unavailable"
+                    : `Engagement: ${(analysis?.reddit?.engagement ?? 0).toLocaleString()}`
+              }
               icon={<MessageCircle className="text-orange-300" />}
               link={`https://www.reddit.com/search/?q=${encodeURIComponent(keyword)}&type=link`}
             />
 
             <MetricCard
               title="AI Sentiment"
-              value={sentimentData ? `${sentimentData[0].value}%` : EMPTY_VALUE}
-              subtitle="NLP sentiment signal"
+              value={
+                loading
+                  ? "Loading..."
+                  : analysisError || analysis?.sentiment?.error
+                    ? "Data unavailable"
+                    : `${Math.round((analysis?.sentiment?.positive ?? 0) * 100)}%`
+              }
+              subtitle={
+                loading
+                  ? "Loading..."
+                  : analysisError || analysis?.sentiment?.error
+                    ? "Data unavailable"
+                    : "NLP sentiment signal"
+              }
               icon={<Brain className="text-pink-300" />}
             />
           </div>
